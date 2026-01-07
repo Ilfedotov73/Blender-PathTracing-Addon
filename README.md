@@ -1,6 +1,6 @@
 # C++ Project Starter Template
 
-This is a аinal bachelor's thesis on the development of a rendering module for the Blende. [Premake](https://github.com/premake/premake-core) is used to generate project files.
+This is a аinal bachelor's thesis on the development of a rendering module for the Blender. [Premake](https://github.com/premake/premake-core) is used to generate project files.
 The `Scripts/` directory contains build scripts for Windows and Linux, and the `Vendor/` directory contains Premake binaries (currently version `5.0-beta2`).
 
 ## License

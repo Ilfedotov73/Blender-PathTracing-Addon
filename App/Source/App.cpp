@@ -24,6 +24,8 @@ int main(int argc, char* argv[])
 				.lookat = { std::stof(argv[16]), std::stof(argv[17]), std::stof(argv[18]) },
 				.vup = { std::stof(argv[19]), std::stof(argv[20]), std::stof(argv[21]) }
 			};
+
+			render_core::renderer::render_run(s_data);
 		}
 		catch (std::exception e) {
 			std::cerr << "Error: " << e.what() << '\n';

@@ -17,8 +17,7 @@ class PTRenderEngineUI(bpy.types.Panel):
 
         props = context.scene.pt_engine_props
         
-        layout.prop(props, "render_binary_path")
-        layout.prop(props, "aspect_ratio")
+        layout.prop(props, "asp_ratio")
         layout.prop(props, "image_width")
         layout.prop(props, "samples")
         layout.prop(props, "max_depth")

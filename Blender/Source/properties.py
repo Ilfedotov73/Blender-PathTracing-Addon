@@ -11,14 +11,6 @@ class PTRenderEngineProps(bpy.types.PropertyGroup):
         max=2.0
     ) # type: ignore
 
-    image_width : IntProperty(
-        name="Image width",
-        description="Width size for image",
-        default=1920,
-        min=50,
-        max=2000
-    ) # type: ignore
-
     samples: IntProperty(
         name="Samples",
         description="Samples per pixel",
@@ -38,7 +30,7 @@ class PTRenderEngineProps(bpy.types.PropertyGroup):
     vfov: FloatProperty(
         name="Vfov",
         description="Vertical angle view",
-        default=10.0,
+        default=20.0,
         min=1.0,
         max=90.0
     ) # type: ignore

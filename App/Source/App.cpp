@@ -10,9 +10,9 @@ int main(int argc, char* argv[])
 		try {
 			render_core::scene_data s_data = {};
 
-			// obj filename & filedir
-			s_data.obj_filaname = argv[1];
-			s_data.obj_filedir = argv[2];
+			// obj filedir & filedir
+			s_data.obj_filedir = argv[1];
+			s_data.mtl_filedir = argv[2];
 
 			for (int i = 3; i < argc; ++i) {
 				std::string arg = argv[i];

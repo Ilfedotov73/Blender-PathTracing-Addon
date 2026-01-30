@@ -6,8 +6,8 @@
 namespace render_core {
 	struct scene_data
 	{
-		const char* obj_filaname,
-				  * obj_filedir;
+		const char* obj_filedir,
+				  * mtl_filedir;
 
 		float	aspect_ratio,
 				image_width,

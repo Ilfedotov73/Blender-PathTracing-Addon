@@ -22,7 +22,9 @@ class PTRenderEngine(bpy.types.RenderEngine):
                 use_selection=False,
                 use_uvs=True,
                 use_materials=True,
-                path_mode='AUTO'
+                path_mode='AUTO',
+                axis_forward='-Z',
+                axis_up='Y'
             )
         except:
             print(f"ERROR: export to obj file failed: {e}")
@@ -35,17 +37,22 @@ class PTRenderEngine(bpy.types.RenderEngine):
             self.report({'ERROR'}, f"Render executable not found: {render_exe}")
             return
         
+        cam = bpy.context.scene.camera
+        matrix = cam.matrix_world
+
+        cam_orig_bl = matrix.translation
+        cam_dir_bl = matrix.to_3x3() @ Vector((0,0,-1))
+        cam_vup_bl = matrix.to_3x3() @ Vector((0,1,0))
+
+        cam_origin = Vector((cam_orig_bl.x, cam_orig_bl.z, -cam_orig_bl.y))
+        cam_direction = Vector((cam_dir_bl.x, cam_dir_bl.z, -cam_dir_bl.y)).normalized()
+        cam_vup = Vector((cam_vup_bl.x, cam_vup_bl.z, -cam_vup_bl.y)).normalized()
+
+        scene = depsgraph.scene
+        scale = scene.render.resolution_percentage / 100.0
+
         engine_props = scene.pt_engine_props
-
-        b_color = bpy.context.scene.world.color
-        #bg_node = world.node_tree.nodes.get('Background')
-        #b_color = bg_node.inputs['Color'].default_value
-
-        camera = bpy.context.scene.camera
-        cam_location = camera.location
-        cam_direction = Vector((0.0, 0.0, -1.0))
-        cam_direction.rotate(camera.rotation_euler)
-
+        backcolor = bpy.context.scene.world.color
         try:
             print(f"Start process: {render_exe}, .obj file dir: {obj_path}, .mtl file dir: {mtl_path}")
             cmd = [
@@ -57,7 +64,7 @@ class PTRenderEngine(bpy.types.RenderEngine):
                 # RENDER SETTINGS
                 #--------------------------------------------------#
                 "--asp_ratio", str(engine_props.asp_ratio),
-                "--image_width", str(bpy.context.scene.render.resolution_x),
+                "--image_width", str(scene.render.resolution_x * scale),
                 "--samples", str(engine_props.samples),
                 "--max_depth", str(engine_props.max_depth),
                 "--vfov", str(engine_props.vfov),
@@ -66,14 +73,14 @@ class PTRenderEngine(bpy.types.RenderEngine):
                 # WORLD -- problem
                 # - background
                 #--------------------------------------------------#
-                "--b1", str(b_color.r),
-                "--b2", str(b_color.g),
-                "--b3", str(b_color.b),
+                "--b1", str(backcolor.r),
+                "--b2", str(backcolor.g),
+                "--b3", str(backcolor.b),
                 # - camera lookfrom
                 #--------------------------------------------------#
-                "--cam_pos_x", str(cam_location.x),
-                "--cam_pos_y", str(cam_location.y),
-                "--cam_pos_z", str(cam_location.z),
+                "--cam_pos_x", str(cam_origin.x),
+                "--cam_pos_y", str(cam_origin.y),
+                "--cam_pos_z", str(cam_origin.z),
                 # - camera lookat
                 #--------------------------------------------------#
                 "--cam_dir_x", str(cam_direction.x),
@@ -81,9 +88,9 @@ class PTRenderEngine(bpy.types.RenderEngine):
                 "--cam_dir_z", str(cam_direction.z),
                 # - View Up Vector
                 #--------------------------------------------------#
-                "--vup_x", str(0.0),
-                "--vup_y", str(1.0),
-                "--vup_z", str(0.0),
+                "--vup_x", str(cam_vup.x),
+                "--vup_y", str(cam_vup.y),
+                "--vup_z", str(cam_vup.z),
             ]
 
             ppm_path = os.path.join(addon_dir, "render.ppm")
@@ -134,7 +141,7 @@ class PTRenderEngine(bpy.types.RenderEngine):
             g = pixel_data[i + 1] / max_val
             b = pixel_data[i + 2] / max_val
             a = 1.0
-            pixels.append([r, g, b, a])
+            pixels.append([r,g,b,a])
 
         layer.rect = pixels
         self.end_result(result)

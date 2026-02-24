@@ -3,6 +3,7 @@ import sys
 import os
 import subprocess
 import traceback
+import numpy as np
 from mathutils import Vector
 
 class PTRenderEngine(bpy.types.RenderEngine):
@@ -124,7 +125,6 @@ class PTRenderEngine(bpy.types.RenderEngine):
             return
         
         width, height = map(int, lines[1].split())
-
         max_val = int(lines[2])
 
         pixel_data = []
@@ -135,13 +135,17 @@ class PTRenderEngine(bpy.types.RenderEngine):
         result = self.begin_result(0, 0, width, height)
         layer = result.layers[0].passes.get("Combined")
         
+        # Порядок обхода пикслей в Blender: сначала все пиксели нижней строки (слева направо), 
+        # затем следующей строки вверх и так до верхней строки.
         pixels = []
-        for i in range(0, len(pixel_data), 3):
-            r = pixel_data[i] / max_val
-            g = pixel_data[i + 1] / max_val
-            b = pixel_data[i + 2] / max_val
-            a = 1.0
-            pixels.append([r,g,b,a])
+        for i in range(height - 1, -1, -1):
+            for j in range(width):
+                idx = (i * width + j) * 3
+                r = pixel_data[idx] / max_val
+                g = pixel_data[idx + 1] / max_val
+                b = pixel_data[idx + 2] / max_val
+                pixels.append([r,g,b,1.0])  
+        
 
         layer.rect = pixels
         self.end_result(result)

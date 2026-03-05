@@ -12,7 +12,7 @@ namespace render_core {
 	void renderer::initialize(scene_data data)
 	{
 		obj_loader loader;
-		loader.load_models(data.obj_filaname, data.obj_filedir);
+		loader.load_models(data.obj_filedir, data.mtl_filedir);
 		WORLD.add(loader.get_sides());
 
 		CAM.ASPECT_RATIO = data.aspect_ratio;

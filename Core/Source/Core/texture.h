@@ -65,7 +65,7 @@ namespace render_core {
 			int j = int(v * image.height());
 			const uchar* pixel = image.pixel_data(i, j);
 
-			double color_scale = 1.0f / 255.0f;
+			float color_scale = 1.0f / 255.0f;
 			return color(color_scale * pixel[0], color_scale * pixel[1], color_scale * pixel[2]);
 		}
 	};

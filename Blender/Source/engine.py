@@ -3,7 +3,6 @@ import sys
 import os
 import subprocess
 import traceback
-import numpy as np
 from mathutils import Vector
 
 class PTRenderEngine(bpy.types.RenderEngine):
@@ -15,7 +14,6 @@ class PTRenderEngine(bpy.types.RenderEngine):
         
         addon_dir = os.path.dirname(__file__)
         obj_path = os.path.join(addon_dir, "scene.obj")
-        mtl_path = os.path.join(addon_dir, "scene.mtl")
 
         try:      
             bpy.ops.export_scene.obj(
@@ -41,6 +39,7 @@ class PTRenderEngine(bpy.types.RenderEngine):
         cam = bpy.context.scene.camera
         matrix = cam.matrix_world
 
+        # Приведение к правосторонней системе координат камеры.
         cam_orig_bl = matrix.translation
         cam_dir_bl = matrix.to_3x3() @ Vector((0,0,-1))
         cam_vup_bl = matrix.to_3x3() @ Vector((0,1,0))
@@ -55,13 +54,13 @@ class PTRenderEngine(bpy.types.RenderEngine):
         engine_props = scene.pt_engine_props
         backcolor = bpy.context.scene.world.color
         try:
-            print(f"Start process: {render_exe}, .obj file dir: {obj_path}, .mtl file dir: {mtl_path}")
+            print(f"Start process: {render_exe}")
             cmd = [
                 render_exe,
                 # OBJ
                 #--------------------------------------------------#
                 obj_path,
-                mtl_path,
+                addon_dir,
                 # RENDER SETTINGS
                 #--------------------------------------------------#
                 "--asp_ratio", str(engine_props.asp_ratio),

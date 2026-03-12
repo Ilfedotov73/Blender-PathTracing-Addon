@@ -10,5 +10,4 @@ The `Scripts/` directory contains build scripts for Windows and Linux, and the `
 Данная работа основана на учебном проекте [https://github.com/Ilfedotov73/ray-tracing-study-pr/tree/ray-tracing-next] и книге Ray Tracing in One Weekend Питера Ширли.
 
 ## Todo
-***
 1. Перенос комментариев из основного проекта [https://github.com/Ilfedotov73/ray-tracing-study-pr/tree/ray-tracing-next] и доп. комментирование.

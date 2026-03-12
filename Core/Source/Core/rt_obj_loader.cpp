@@ -39,6 +39,9 @@ namespace render_core {
                     std::shared_ptr<texture> tex = std::make_shared<image_texture>(mat.diffuse_texname.c_str());
                     surface = std::make_shared<lambertian>(tex);
                 }
+                else if (mat.name == "Light") {
+                    surface = std::make_shared<diffuse_light>(color(15.0f, 15.0f, 15.0f));
+                }
                 else {
                     surface = std::make_shared<lambertian>(color(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]));
                 }

@@ -11,4 +11,4 @@ The `Scripts/` directory contains build scripts for Windows and Linux, and the `
 
 ## Todo
 ***
-1. Перенос комментариев и доп. комментирование из основного проекта [https://github.com/Ilfedotov73/ray-tracing-study-pr/tree/ray-tracing-next]
+1. Перенос комментариев из основного проекта [https://github.com/Ilfedotov73/ray-tracing-study-pr/tree/ray-tracing-next] и доп. комментирование.

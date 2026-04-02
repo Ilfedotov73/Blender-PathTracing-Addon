@@ -70,6 +70,7 @@ class PTRenderEngine(bpy.types.RenderEngine):
                 "--vfov", str(engine_props.vfov),
                 "--focus_angle", str(engine_props.focus_angle),
                 "--focus_dist", str(engine_props.focus_dist),
+                "--time_limit_per_pixel", str(engine_props.time_limit_per_pixel),
                 # WORLD -- problem
                 # - background
                 #--------------------------------------------------#
@@ -91,6 +92,7 @@ class PTRenderEngine(bpy.types.RenderEngine):
                 "--vup_x", str(cam_vup.x),
                 "--vup_y", str(cam_vup.y),
                 "--vup_z", str(cam_vup.z),
+                "--adapting_rendering", str(int(engine_props.adapting_rendering)),
             ]
 
             ppm_path = os.path.join(addon_dir, "render.ppm")

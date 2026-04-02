@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <time.h>
 
 #include "rt_helper.h"
 #include "vec3.h"
@@ -10,6 +11,7 @@
 #include "color.h"
 #include "hittable.h"
 #include "material.h"
+#include "adaptiv_sampling.h"
 
 namespace render_core {
 	class camera
@@ -25,6 +27,8 @@ namespace render_core {
 		vec3   U, W, V;				
 		vec3   FOCUS_DISK_U, 		
 			   FOCUS_DISK_V;
+
+		mutable int hits_count = 0;
 
 		void initialize()
 		{
@@ -56,15 +60,17 @@ namespace render_core {
 			FOCUS_DISK_U = U * focus_radius;
 			FOCUS_DISK_V = V * focus_radius;
 
-			PIXEL_SAMPLES_SCALE = 1.0f / SAMPLES_PER_PIXEL;
+			//PIXEL_SAMPLES_SCALE = 1.0f / SAMPLES_PER_PIXEL;
 		}
 
+		// При поверхностном пересечении, надо увеличивать hits_count;
 		color ray_color(const ray& r, int max_depth, const hittable& world) const
 		{
 			if (max_depth <= 0) { return color(0.0f, 0.0f, 0.0f); }
 
 			hit_record rec;
 			if (!world.hit(r, interval(0.001f, INF), rec)) { return background; }
+			if (max_depth == MAX_DEPTH) { ++hits_count; }
 			ray   scattered;	
 			color attenuation;	
 			color color_from_emission = rec.mat->emitted(rec.u, rec.v, rec.p);
@@ -96,13 +102,16 @@ namespace render_core {
 
 	public:
 		float  ASPECT_RATIO = 1.0f;     				
-		int    IMAGE_WIDTH = 100;     				
+		int    IMAGE_WIDTH = 100;     			
+		float  TIME_LIMIT_PER_PIXEL = 120;
 		int	   SAMPLES_PER_PIXEL = 10;      				
 		int	   MAX_DEPTH = 10;						
 		float  VFOV = 90.0f;					
 		point3 LOOKFROM = point3(0.0f, 0.0f, 0.0f);	
 		point3 LOOKAT = point3(0.f, 0.f, -1.f);  	  
 		vec3   VUP = vec3(0.f, 1.f, 0.f);		
+		
+		bool   ADAPTING_RENDERING = true;
 
 		float FOCUS_ANGLE = 0.0f;					
 		float  FOCUS_DIST = 10.0f;			    	
@@ -110,16 +119,34 @@ namespace render_core {
 
 		void render(const hittable& world)
 		{
+			float elapsed_time;
+			int samples_limit;
+			time_t start_time, end_time;
+
 			initialize();
+			adaptiv_render::adaptiv_sampling ads_(TIME_LIMIT_PER_PIXEL, &elapsed_time, &hits_count, &samples_limit);
 			std::cout << "P3\n" << IMAGE_WIDTH << ' ' << IMAGE_HEIGHT << "\n255\n";
 			for (int j = 0; j < IMAGE_HEIGHT; ++j) {
 				std::clog << "\rScanlines remaining: " << (IMAGE_HEIGHT - j) << ' ' << std::flush;
 				for (int i = 0; i < IMAGE_WIDTH; ++i) {
 					color pixel_color(0.0f, 0.0f, 0.0f);
-					for (int sample = 0; sample < SAMPLES_PER_PIXEL; ++sample) {
-						ray r = get_ray(i, j);	
+					samples_limit = SAMPLES_PER_PIXEL;
+					for (int sample = 0; sample < samples_limit; ++sample) {
+						ray r = get_ray(i, j);
+
+						start_time = time(NULL);
 						pixel_color += ray_color(r, MAX_DEPTH, world); 
+						end_time = time(NULL);
+
+						if (ADAPTING_RENDERING) {
+							elapsed_time = difftime(end_time, start_time);
+							ads_.samples_delta_cal();	
+							if (samples_limit < 0) { samples_limit = 0; }
+							else if (samples_limit > SAMPLES_PER_PIXEL) { samples_limit = SAMPLES_PER_PIXEL; }
+						}
 					}
+					hits_count = 0;
+					PIXEL_SAMPLES_SCALE = 1.0f / samples_limit;
 					write_color(std::cout, PIXEL_SAMPLES_SCALE * pixel_color); 
 				}
 			}

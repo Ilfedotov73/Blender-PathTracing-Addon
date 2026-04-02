@@ -23,6 +23,8 @@ class PTRenderEngineUI(bpy.types.Panel):
         layout.prop(props, "vfov")
         layout.prop(props, "focus_angle")
         layout.prop(props, "focus_dist")
+        layout.prop(props, "time_limit_per_pixel")
+        layout.prop(props, "adapting_rendering")
 
 def register():
     bpy.utils.register_class(PTRenderEngineUI)

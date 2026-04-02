@@ -1,5 +1,5 @@
 import bpy
-from bpy.props import IntProperty, FloatProperty
+from bpy.props import IntProperty, FloatProperty, BoolProperty
 
 class PTRenderEngineProps(bpy.types.PropertyGroup):
     bl_idname = __package__
@@ -50,6 +50,19 @@ class PTRenderEngineProps(bpy.types.PropertyGroup):
         min=1,
         max=40
     ) # type: ignore
+
+    time_limit_per_pixel : FloatProperty(
+        name="Time limit per pixel",
+        description="Pixel rendering time limit in seconds",
+        default=120,
+        min=0
+    ) # type: ignore
+
+    adapting_rendering : BoolProperty(
+        name="Adaptiv rendering",
+        description="Fuzzy controller for sample per pixel limit controler",
+        default=True
+    )
 
 def register():
     bpy.utils.register_class(PTRenderEngineProps)

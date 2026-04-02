@@ -17,14 +17,14 @@
 namespace render_core {
     obj_loader::obj_loader() { sides = std::make_shared<hittable_list>(); }
 
-    void obj_loader::load_models(const char* filename, const char* mtlsdir)
+    void obj_loader::load_models(const char* objfilename, const char* mtlsdir)
     {
         tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
         std::vector<tinyobj::material_t> materials;
         std::string warn, err;
 
-        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename, mtlsdir)) {
+        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, objfilename, mtlsdir)) {
             std::cerr << warn << " " << err << ".\n";
         }
 
@@ -41,6 +41,12 @@ namespace render_core {
                 }
                 else if (mat.name == "Light") {
                     surface = std::make_shared<diffuse_light>(color(15.0f, 15.0f, 15.0f));
+                }
+                else if (mat.name == "Metal") {
+                    surface = std::make_shared<metal>(color(0.8f, 0.0f, 0.0f), 0.6f);
+                }
+                else if (mat.name == "Dielectric") {
+                    surface = std::make_shared<dielectric>(1.0f / 1.5f);
                 }
                 else {
                     surface = std::make_shared<lambertian>(color(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]));

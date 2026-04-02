@@ -11,11 +11,12 @@ int main(int argc, char* argv[])
 			render_core::scene_data s_data = {};
 
 			// obj filedir & filedir
-			s_data.obj_filedir = argv[1];
-			s_data.mtl_filedir = argv[2];
+			s_data.objfilename = argv[1];
+			s_data.mtlsdir = argv[2];
 
+			std::string arg;
 			for (int i = 3; i < argc; ++i) {
-				std::string arg = argv[i];
+				arg = argv[i];
 
 				// Render settings
 				if (arg == "--asp_ratio") { s_data.aspect_ratio = std::stof(argv[++i]); }
@@ -25,6 +26,7 @@ int main(int argc, char* argv[])
 				else if (arg == "--vfov") { s_data.vfov = std::stof(argv[++i]); }
 				else if (arg == "--focus_angle") { s_data.focus_angle = std::stof(argv[++i]); }
 				else if (arg == "--focus_dist") { s_data.focus_dist = std::stof(argv[++i]); }
+				else if (arg == "--time_limit_per_pixel") { s_data.time_limit_per_pixel = std::stof(argv[++i]); }
 
 				// World settings
 				// - background 
@@ -47,6 +49,8 @@ int main(int argc, char* argv[])
 				else if (arg == "--vup_x") { s_data.vup[0] = std::stof(argv[++i]); }
 				else if (arg == "--vup_y") { s_data.vup[1] = std::stof(argv[++i]); }
 				else if (arg == "--vup_z") { s_data.vup[2] = std::stof(argv[++i]); }
+
+				else if (arg == "--adapting_rendering") { s_data.adapting_rendering = std::stoi(argv[++i]); }
 			}
 
 			render_core::renderer::render_run(s_data);

@@ -12,7 +12,7 @@ namespace render_core {
 	void renderer::initialize(scene_data data)
 	{
 		obj_loader loader;
-		loader.load_models(data.obj_filedir, data.mtl_filedir);
+		loader.load_models(data.objfilename, data.mtlsdir);
 		WORLD.add(loader.get_sides());
 
 		CAM.ASPECT_RATIO = data.aspect_ratio;
@@ -22,11 +22,14 @@ namespace render_core {
 		CAM.VFOV = data.vfov;
 		CAM.FOCUS_ANGLE = data.focus_angle;
 		CAM.FOCUS_DIST = data.focus_dist;
+		CAM.TIME_LIMIT_PER_PIXEL = data.time_limit_per_pixel;
 
 		CAM.background = color(data.background[0], data.background[1], data.background[2]);
 		CAM.LOOKFROM = point3(data.lookfrom[0], data.lookfrom[1], data.lookfrom[2]);
 		CAM.LOOKAT = vec3(data.lookat[0], data.lookat[1], data.lookat[2]);
 		CAM.VUP = vec3(data.vup[0], data.vup[1], data.vup[2]);
+
+		CAM.ADAPTING_RENDERING = data.adapting_rendering;
 	}
 	void renderer::render_run(scene_data data)
 	{

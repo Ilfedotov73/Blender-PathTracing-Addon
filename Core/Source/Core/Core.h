@@ -6,8 +6,8 @@
 namespace render_core {
 	struct scene_data
 	{
-		const char* obj_filedir,
-				  * mtl_filedir;
+		const char* objfilename,
+				  * mtlsdir;
 
 		float	aspect_ratio,
 				image_width,
@@ -15,12 +15,15 @@ namespace render_core {
 				max_depth,
 				vfov,
 				focus_angle,
-				focus_dist;
+				focus_dist,
+				time_limit_per_pixel;
 				
 		float	background[3],
 				lookfrom[3],
 				lookat[3],
 				vup[3];
+
+		bool	adapting_rendering;
 	};
 	class renderer {
 	public:

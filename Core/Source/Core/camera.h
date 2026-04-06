@@ -29,6 +29,9 @@ namespace render_core {
 			   FOCUS_DISK_V;
 
 		mutable int hits_count = 0;
+		
+		mutable int sqrt_spp;
+		mutable float recip_sqrt_spp;
 
 		void initialize()
 		{
@@ -80,9 +83,9 @@ namespace render_core {
 			return color_from_emission + color_from_scatter;
 		}
 
-		ray get_ray(int i, int j) const
+		ray get_ray(int i, int j, int s_i, int s_j) const
 		{
-			vec3 offset = sample_square(); 
+			vec3 offset = sample_square_stratified(s_i, s_j);
 
 			point3 pixel_sample = PIXEL_LOC_00 + ((i + offset.x()) * PIXEL_DELTA_U) + ((j + offset.y()) * PIXEL_DELTA_V);
 			point3 ray_origin = (FOCUS_ANGLE <= 0) ? CAMERA_CENTER : focus_disk_sample();
@@ -93,6 +96,14 @@ namespace render_core {
 		}
 
 		vec3 sample_square() const { return vec3(random_float() - 0.5f, random_float() - 0.5f, 0.0f); }
+
+		vec3 sample_square_stratified(int s_i, int s_j) const
+		{
+			float px = ((s_i + random_float()) * recip_sqrt_spp) - 0.5f;
+			float py = ((s_j + random_float()) * recip_sqrt_spp) - 0.5f;
+
+			return vec3(px, py, 0);
+		}
 
 		point3 focus_disk_sample() const
 		{
@@ -131,22 +142,31 @@ namespace render_core {
 				for (int i = 0; i < IMAGE_WIDTH; ++i) {
 					color pixel_color(0.0f, 0.0f, 0.0f);
 					samples_limit = SAMPLES_PER_PIXEL;
-					for (int sample = 0; sample < samples_limit; ++sample) {
-						ray r = get_ray(i, j);
 
-						start_time = time(NULL);
-						pixel_color += ray_color(r, MAX_DEPTH, world); 
-						end_time = time(NULL);
+					sqrt_spp = int(std::sqrt(samples_limit));
+					recip_sqrt_spp = 1.0 / sqrt_spp;
 
-						if (ADAPTING_RENDERING) {
-							elapsed_time = difftime(end_time, start_time);
-							ads_.samples_delta_cal();	
-							if (samples_limit < 0) { samples_limit = 0; }
-							else if (samples_limit > SAMPLES_PER_PIXEL) { samples_limit = SAMPLES_PER_PIXEL; }
+					for (int s_j = 0; s_j < sqrt_spp; ++s_j) {
+						for (int s_i = 0; s_i < sqrt_spp; ++s_i) {
+							ray r = get_ray(i, j, s_i, s_j);
+
+							start_time = time(NULL);
+							pixel_color += ray_color(r, MAX_DEPTH, world);
+							end_time = time(NULL);
+
+							if (ADAPTING_RENDERING) {
+								elapsed_time = difftime(end_time, start_time);
+								ads_.samples_delta_cal();
+								if (samples_limit < 0) { samples_limit = 0; }
+								else if (samples_limit > SAMPLES_PER_PIXEL) { samples_limit = SAMPLES_PER_PIXEL; }
+								
+								sqrt_spp = int(std::sqrt(samples_limit));
+								recip_sqrt_spp = 1.0 / sqrt_spp;
+							}
 						}
 					}
 					hits_count = 0;
-					PIXEL_SAMPLES_SCALE = 1.0f / samples_limit;
+					PIXEL_SAMPLES_SCALE = 1.0f / (sqrt_spp * sqrt_spp);
 					write_color(std::cout, PIXEL_SAMPLES_SCALE * pixel_color); 
 				}
 			}

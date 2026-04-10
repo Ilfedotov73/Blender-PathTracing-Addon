@@ -50,7 +50,11 @@ int main(int argc, char* argv[])
 				else if (arg == "--vup_y") { s_data.vup[1] = std::stof(argv[++i]); }
 				else if (arg == "--vup_z") { s_data.vup[2] = std::stof(argv[++i]); }
 
+				// Fuzzy rendering
 				else if (arg == "--adapting_rendering") { s_data.adapting_rendering = std::stoi(argv[++i]); }
+
+				/* SSAO */
+				else if (arg == "--ssao") { s_data.ssao = std::stoi(argv[++i]); }
 			}
 
 			render_core::renderer::render_run(s_data);

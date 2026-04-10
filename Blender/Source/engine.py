@@ -108,6 +108,63 @@ class PTRenderEngine(bpy.types.RenderEngine):
 
             self.parse_to_ppm(ppm_path)
 
+            """ SSAO """
+            print(f"Start process: {render_exe}")
+            cmd = [
+                render_exe,
+                # OBJ
+                #--------------------------------------------------#
+                obj_path,
+                addon_dir,
+                # RENDER SETTINGS
+                #--------------------------------------------------#
+                "--asp_ratio", str(engine_props.asp_ratio),
+                "--image_width", str(scene.render.resolution_x * scale),
+                "--samples", str(0),
+                "--max_depth", str(0),
+                "--vfov", str(engine_props.vfov),
+                "--focus_angle", str(0),
+                "--focus_dist", str(engine_props.focus_dist),
+                "--time_limit_per_pixel", str(0),
+                # WORLD -- problem
+                # - background
+                #--------------------------------------------------#
+                "--b1", str(1.0),
+                "--b2", str(1.0),
+                "--b3", str(1.0),
+                # - camera lookfrom
+                #--------------------------------------------------#
+                "--cam_pos_x", str(cam_origin.x),
+                "--cam_pos_y", str(cam_origin.y),
+                "--cam_pos_z", str(cam_origin.z),
+                # - camera lookat
+                #--------------------------------------------------#
+                "--cam_dir_x", str(cam_direction.x),
+                "--cam_dir_y", str(cam_direction.y),
+                "--cam_dir_z", str(cam_direction.z),
+                # - View Up Vector
+                #--------------------------------------------------#
+                "--vup_x", str(cam_vup.x),
+                "--vup_y", str(cam_vup.y),
+                "--vup_z", str(cam_vup.z),
+                "--adapting_rendering", str(int(False)),
+                "--ssao", str(int(True)),
+            ]
+
+            ambient_occlusion_map_ppm = os.path.join(addon_dir, "ambient_occlusion_map.ppm")
+
+            with open(ambient_occlusion_map_ppm, 'w') as ppm:
+                subprocess.run(
+                    cmd,
+                    text=True,
+                    check=True,
+                    shell=(sys.platform == "win32"),
+                    stdout=ppm
+                )
+
+            #self.parse_to_ppm(ambient_occlusion_map.ppm)
+
+
         except subprocess.CalledProcessError as e:
             print(cmd)
             print(f"ERROR: {e.stderr}, {traceback.print_exception()}")

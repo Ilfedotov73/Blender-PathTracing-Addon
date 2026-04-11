@@ -4,7 +4,7 @@
 #include <cmath>
 #include <time.h>
 #include <unordered_map>
-#include <vector>
+#include <string>
 
 #include "rt_helper.h"
 #include "vec3.h"
@@ -94,18 +94,18 @@ namespace render_core {
 			return ray(ray_origin, ray_direction);
 		}
 
-		void make_shading(std::vector<hit_point>& hit_point_table)
+		void make_shading(std::unordered_map<std::string, hit_point>& hit_point_table)
 		{
 			int limit = 50000000;
-			int size = IMAGE_WIDTH * IMAGE_HEIGHT;
 			for (int i = 0; i < limit;) {
-				int key1 = random_int(0, size);
-				int key2 = random_int(0, size);
+				std::string key1 = std::to_string(random_int(0, IMAGE_WIDTH)) + std::to_string(random_int(0, IMAGE_HEIGHT));
+				std::string key2 = std::to_string(random_int(0, IMAGE_WIDTH)) + std::to_string(random_int(0, IMAGE_HEIGHT));
+				
+				if (hit_point_table.contains(key1) && hit_point_table.contains(key2)) {
 
-				hit_point& p1 = hit_point_table[key1];
-				hit_point& p2 = hit_point_table[key2];
-
-				if (p1.get_is_hit() && p2.get_is_hit()) { 
+					hit_point& p1 = hit_point_table[key1];
+					hit_point& p2 = hit_point_table[key2];
+					
 					vec3 v1 = p1.normal - p1.p;
 					vec3 v2 = p2.p - p1.p;
 					vec3 v3 = p2.normal - p1.p;
@@ -116,14 +116,11 @@ namespace render_core {
 						{v3[0], v3[1], v3[2]}
 					};
 
-					if (determinant(matrix) == 0) { continue; }
-
 					float dist = distance(p1.p, p2.p);
 					float intensity = std::min(dist / MAX_SHADING_DIST, 1.0f);
 
 					p1.intens = p1.intens > intensity ? intensity : p1.intens;
-					//p2.intens = p2.intens > intensity ? intensity : p2.intens;
-
+					p2.intens = p2.intens > intensity ? intensity : p2.intens;
 					++i;
 				}
 			}
@@ -178,30 +175,27 @@ namespace render_core {
 		{
 			std::cerr << "Start SSAO rendering" << '\n';
 			initialize();
-			std::vector<hit_point> hit_point_table;
-
+			std::unordered_map<std::string, hit_point> hit_point_table;
 			for (int j = 0; j < IMAGE_HEIGHT; ++j) {
 				for (int i = 0; i < IMAGE_WIDTH; ++i) {
 					ray r = ssao_get_ray(i, j);
 
 					hit_record rec;
-					if (!world.hit(r, interval(0.001f, INF), rec)) { 
-						hit_point_table.push_back(hit_point(false));
-						continue; 
-					}
+					if (!world.hit(r, interval(0.001f, INF), rec)) { continue; }
 
-					hit_point_table.push_back(hit_point(true, rec.p, rec.normal));
+					std::string key = std::to_string(i) + std::to_string(j);
+					hit_point_table[key] = hit_point(rec.p, rec.normal, 0.0f);
 				}
 			}
 
 			make_shading(hit_point_table);
 
 			std::cout << "P3\n" << IMAGE_WIDTH << ' ' << IMAGE_HEIGHT << "\n255\n";
-			int k = 0;
 			for (int j = 0; j < IMAGE_HEIGHT; ++j) {
 				std::clog << "\rScanlines remaining: " << (IMAGE_HEIGHT - j) << ' ' << std::flush;
 				for (int i = 0; i < IMAGE_WIDTH; ++i) {
-					float pixel_intens = hit_point_table[k++].intens;
+					std::string key = std::to_string(i) + std::to_string(j);
+					float pixel_intens = hit_point_table[key].intens;
 					write_color(std::cout, color(pixel_intens, pixel_intens, pixel_intens));
 				}
 			}

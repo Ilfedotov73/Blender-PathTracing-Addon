@@ -3,8 +3,6 @@
 #include <iostream>
 #include <cmath>
 #include <time.h>
-#include <unordered_map>
-#include <string>
 
 #include "rt_helper.h"
 #include "vec3.h"
@@ -35,6 +33,7 @@ namespace render_core {
 		mutable float recip_sqrt_spp;
 
 		float MAX_SHADING_DIST = 1.2f;
+		int	  SHADING_SAMPLES_LIMIT = 20;
 
 		void initialize()
 		{
@@ -93,39 +92,24 @@ namespace render_core {
 
 			return ray(ray_origin, ray_direction);
 		}
-
-		void make_shading(std::unordered_map<std::string, hit_point>& hit_point_table)
+		
+		color ssao_ray_color(const ray& r, const hittable& world)
 		{
-			int limit = 2000000;
-			for (int i = 0; i < limit;) {
-				std::string key1 = std::to_string(random_int(0, IMAGE_WIDTH - 1)) + std::to_string(random_int(0, IMAGE_HEIGHT - 1));
-				std::string key2 = std::to_string(random_int(0, IMAGE_WIDTH - 1)) + std::to_string(random_int(0, IMAGE_HEIGHT - 1));
-				
-				if (hit_point_table.contains(key1) && hit_point_table.contains(key2)) {
-					hit_point& p1 = hit_point_table[key1];
-					hit_point& p2 = hit_point_table[key2];
-					
+			hit_record rec;
+			if (!world.hit(r, interval(0.001f, INF), rec)) { return color(1.0f, 1.0f, 1.0f); }
 
-					vec3 v1 = p1.normal - p1.p;
-					vec3 v2 = p2.p - p1.p;
-					vec3 v3 = p2.normal - p1.p;
-
-					std::vector<std::vector<float>> matrix = {
-						{v1[0], v1[1], v1[2]},
-						{v2[0], v2[1], v2[2]},
-						{v3[0], v3[1], v3[2]}
-					};
-
-					float dist = distance(p1.p, p2.p);
-					if (determinant(matrix) == 0.0f) { continue; }
-
-					float intensity = std::min(dist / MAX_SHADING_DIST, 1.0f);
-
-					p1.intens = p1.intens >= intensity ? intensity : p1.intens;
-					p2.intens = p2.intens >= intensity ? intensity : p2.intens;
-					++i;
+			color pixel_color = color(1.0f, 1.0f, 1.0f);
+			hit_record shading_rec;
+			for (int sample = 0; sample < SHADING_SAMPLES_LIMIT; ++sample) {
+				vec3 scatter_dir = rec.normal + random_unit_vector();
+				if (scatter_dir.near_zero()) { scatter_dir = rec.normal; }
+				ray scattered = ray(rec.p, scatter_dir);
+				if (world.hit(scattered, interval(0.001f, INF), shading_rec)) {
+					float intensity = pixel_ao_intensity(rec.p, shading_rec.p, MAX_SHADING_DIST);
+					pixel_color = pixel_color[0] > intensity ? color(intensity, intensity, intensity) : pixel_color;
 				}
 			}
+			return pixel_color;
 		}
 
 		ray get_ray(int i, int j, int s_i, int s_j) const
@@ -177,33 +161,16 @@ namespace render_core {
 		{
 			std::cerr << "Start SSAO rendering" << '\n';
 			initialize();
-			std::unordered_map<std::string, hit_point> hit_point_table;
-			for (int j = 0; j < IMAGE_HEIGHT; ++j) {
-				for (int i = 0; i < IMAGE_WIDTH; ++i) {
-					ray r = ssao_get_ray(i, j);
 
-					hit_record rec;
-					if (!world.hit(r, interval(0.001f, INF), rec)) { continue; }
-
-					std::string key = std::to_string(i) + std::to_string(j);
-					hit_point_table[key] = hit_point(rec.p, rec.normal, 1.0f);
-				}
-			}
-
-			make_shading(hit_point_table);
+			int SHADING_SAMPLES = 20;
 
 			std::cout << "P3\n" << IMAGE_WIDTH << ' ' << IMAGE_HEIGHT << "\n255\n";
 			for (int j = 0; j < IMAGE_HEIGHT; ++j) {
 				std::clog << "\rScanlines remaining: " << (IMAGE_HEIGHT - j) << ' ' << std::flush;
 				for (int i = 0; i < IMAGE_WIDTH; ++i) {
-					std::string key = std::to_string(i) + std::to_string(j);
-					if (hit_point_table.contains(key)) {
-						float pixel_intens = hit_point_table[key].intens;
-						write_color(std::cout, color(pixel_intens, pixel_intens, pixel_intens));
-					}
-					else {
-						write_color(std::cout, color(1.0, 1.0, 1.0));
-					}
+					ray r = ssao_get_ray(i, j);
+					color pixel_color = ssao_ray_color(r, world);
+					write_color(std::cout, pixel_color);
 				}
 			}
 			std::clog << "\rDone.                 \n";

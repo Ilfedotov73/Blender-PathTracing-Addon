@@ -15,7 +15,7 @@ namespace render_core {
 	
 	inline float random_float(float min, float max) { return min + (max - min) * random_float(); } 
 	
-	inline int random_int(int min, int max) { return int(random_float(min, max + 1)); }
+	inline int random_int(int min, int max) { return int(random_float(min, max)); }
 
 	inline float determinant(std::vector<std::vector<float>> matrix)
 	{
@@ -27,8 +27,12 @@ namespace render_core {
 			for (int j = i + 1; j < n; ++j) {
 				if (std::abs(matrix[j][i]) > abs(matrix[pivot][i])) { pivot = j; }
 			}
-			std::swap(matrix[i], matrix[pivot]);
 			if (std::abs(matrix[i][i]) < 1e-9) { return 0.0f; }
+			
+			if (pivot != i) {
+				std::swap(matrix[i], matrix[pivot]);
+				det *= -1;
+			}
 			det *= matrix[i][i];
 
 			for (int j = i + 1; j < n; ++j) {

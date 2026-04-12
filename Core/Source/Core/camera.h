@@ -34,7 +34,7 @@ namespace render_core {
 		mutable int sqrt_spp;
 		mutable float recip_sqrt_spp;
 
-		float MAX_SHADING_DIST = 1.0f;
+		float MAX_SHADING_DIST = 1.2f;
 
 		void initialize()
 		{
@@ -96,16 +96,16 @@ namespace render_core {
 
 		void make_shading(std::unordered_map<std::string, hit_point>& hit_point_table)
 		{
-			int limit = 50000000;
+			int limit = 2000000;
 			for (int i = 0; i < limit;) {
-				std::string key1 = std::to_string(random_int(0, IMAGE_WIDTH)) + std::to_string(random_int(0, IMAGE_HEIGHT));
-				std::string key2 = std::to_string(random_int(0, IMAGE_WIDTH)) + std::to_string(random_int(0, IMAGE_HEIGHT));
+				std::string key1 = std::to_string(random_int(0, IMAGE_WIDTH - 1)) + std::to_string(random_int(0, IMAGE_HEIGHT - 1));
+				std::string key2 = std::to_string(random_int(0, IMAGE_WIDTH - 1)) + std::to_string(random_int(0, IMAGE_HEIGHT - 1));
 				
 				if (hit_point_table.contains(key1) && hit_point_table.contains(key2)) {
-
 					hit_point& p1 = hit_point_table[key1];
 					hit_point& p2 = hit_point_table[key2];
 					
+
 					vec3 v1 = p1.normal - p1.p;
 					vec3 v2 = p2.p - p1.p;
 					vec3 v3 = p2.normal - p1.p;
@@ -117,10 +117,12 @@ namespace render_core {
 					};
 
 					float dist = distance(p1.p, p2.p);
+					if (determinant(matrix) == 0.0f) { continue; }
+
 					float intensity = std::min(dist / MAX_SHADING_DIST, 1.0f);
 
-					p1.intens = p1.intens > intensity ? intensity : p1.intens;
-					p2.intens = p2.intens > intensity ? intensity : p2.intens;
+					p1.intens = p1.intens >= intensity ? intensity : p1.intens;
+					p2.intens = p2.intens >= intensity ? intensity : p2.intens;
 					++i;
 				}
 			}
@@ -184,7 +186,7 @@ namespace render_core {
 					if (!world.hit(r, interval(0.001f, INF), rec)) { continue; }
 
 					std::string key = std::to_string(i) + std::to_string(j);
-					hit_point_table[key] = hit_point(rec.p, rec.normal, 0.0f);
+					hit_point_table[key] = hit_point(rec.p, rec.normal, 1.0f);
 				}
 			}
 
@@ -195,8 +197,13 @@ namespace render_core {
 				std::clog << "\rScanlines remaining: " << (IMAGE_HEIGHT - j) << ' ' << std::flush;
 				for (int i = 0; i < IMAGE_WIDTH; ++i) {
 					std::string key = std::to_string(i) + std::to_string(j);
-					float pixel_intens = hit_point_table[key].intens;
-					write_color(std::cout, color(pixel_intens, pixel_intens, pixel_intens));
+					if (hit_point_table.contains(key)) {
+						float pixel_intens = hit_point_table[key].intens;
+						write_color(std::cout, color(pixel_intens, pixel_intens, pixel_intens));
+					}
+					else {
+						write_color(std::cout, color(1.0, 1.0, 1.0));
+					}
 				}
 			}
 			std::clog << "\rDone.                 \n";

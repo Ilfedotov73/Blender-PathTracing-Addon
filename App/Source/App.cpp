@@ -54,7 +54,9 @@ int main(int argc, char* argv[])
 				else if (arg == "--adapting_rendering") { s_data.adapting_rendering = std::stoi(argv[++i]); }
 
 				/* SSAO */
-				else if (arg == "--ssao") { s_data.ssao = std::stoi(argv[++i]); }
+				else if (arg == "--ssaor") { s_data.ssao_rendering = std::stoi(argv[++i]); }
+				
+				else if (arg == "--diffr") { s_data.diffuse_rendering = std::stoi(argv[++i]); }
 			}
 
 			render_core::renderer::render_run(s_data);

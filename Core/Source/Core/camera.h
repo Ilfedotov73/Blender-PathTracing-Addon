@@ -32,8 +32,8 @@ namespace render_core {
 		mutable int sqrt_spp;
 		mutable float recip_sqrt_spp;
 
-		float MAX_SHADING_DIST = 1.2f;
-		int	  SHADING_SAMPLES_LIMIT = 20;
+		float MAX_SHADING_DIST = 1.0f;
+		int	  SHADING_SAMPLES_LIMIT = 5;
 
 		void initialize()
 		{
@@ -68,6 +68,19 @@ namespace render_core {
 			//PIXEL_SAMPLES_SCALE = 1.0f / SAMPLES_PER_PIXEL;
 		}
 
+		color diff_ray_color(const ray& r, const hittable& world) const
+		{
+			hit_record rec;
+			if (!world.hit(r, interval(0.001f, INF), rec)) { return background; }
+			
+			color color_from_emission = rec.mat->emitted(rec.u, rec.v, rec.p);
+			
+			ray   scattered;
+			color attenuation;
+			if (!rec.mat->scatter(r, rec, attenuation, scattered)) { return color_from_emission; }
+			return attenuation + color_from_emission;
+		}
+
 		color ray_color(const ray& r, int max_depth, const hittable& world) const
 		{
 			if (max_depth <= 0) { return color(0.0f, 0.0f, 0.0f); }
@@ -84,16 +97,7 @@ namespace render_core {
 			return color_from_emission + color_from_scatter;
 		}
 
-		ray ssao_get_ray(int i, int j) const
-		{
-			point3 pixel_center = PIXEL_LOC_00 + (i * PIXEL_DELTA_U) + (j * PIXEL_DELTA_V);
-			point3 ray_origin = CAMERA_CENTER;
-			point3 ray_direction = pixel_center - ray_origin;
-
-			return ray(ray_origin, ray_direction);
-		}
-		
-		color ssao_ray_color(const ray& r, const hittable& world)
+		color ssao_ray_color(const ray& r, const hittable& world) const
 		{
 			hit_record rec;
 			if (!world.hit(r, interval(0.001f, INF), rec)) { return color(1.0f, 1.0f, 1.0f); }
@@ -110,6 +114,15 @@ namespace render_core {
 				}
 			}
 			return pixel_color;
+		}
+
+		ray base_get_ray(int i, int j) const
+		{
+			point3 pixel_center = PIXEL_LOC_00 + (i * PIXEL_DELTA_U) + (j * PIXEL_DELTA_V);
+			point3 ray_origin = CAMERA_CENTER;
+			point3 ray_direction = pixel_center - ray_origin;
+
+			return ray(ray_origin, ray_direction);
 		}
 
 		ray get_ray(int i, int j, int s_i, int s_j) const
@@ -145,6 +158,7 @@ namespace render_core {
 		int    IMAGE_WIDTH = 100;     			
 		float  TIME_LIMIT_PER_PIXEL = 120;
 		int	   SAMPLES_PER_PIXEL = 10;      				
+		int	   SHADING_SAMPLES = 20;
 		int	   MAX_DEPTH = 10;						
 		float  VFOV = 90.0f;					
 		point3 LOOKFROM = point3(0.0f, 0.0f, 0.0f);	
@@ -157,18 +171,31 @@ namespace render_core {
 		float FOCUS_DIST = 10.0f;			    	
 		color background;
 
-		void ssao_render(const hittable& world)
+		void diffuse_render(const hittable& world)
 		{
-			std::cerr << "Start SSAO rendering" << '\n';
+			std::cerr << "Start diffuse rendering" << '\n';
 			initialize();
-
-			int SHADING_SAMPLES = 20;
-
 			std::cout << "P3\n" << IMAGE_WIDTH << ' ' << IMAGE_HEIGHT << "\n255\n";
 			for (int j = 0; j < IMAGE_HEIGHT; ++j) {
 				std::clog << "\rScanlines remaining: " << (IMAGE_HEIGHT - j) << ' ' << std::flush;
 				for (int i = 0; i < IMAGE_WIDTH; ++i) {
-					ray r = ssao_get_ray(i, j);
+					ray r = base_get_ray(i, j);
+					color pixel_color = diff_ray_color(r, world);
+					write_color(std::cout, pixel_color);
+				}
+			}
+			std::clog << "\rDone.                 \n";
+		}
+
+		void ssao_render(const hittable& world)
+		{
+			std::cerr << "Start SSAO rendering" << '\n';
+			initialize();
+			std::cout << "P3\n" << IMAGE_WIDTH << ' ' << IMAGE_HEIGHT << "\n255\n";
+			for (int j = 0; j < IMAGE_HEIGHT; ++j) {
+				std::clog << "\rScanlines remaining: " << (IMAGE_HEIGHT - j) << ' ' << std::flush;
+				for (int i = 0; i < IMAGE_WIDTH; ++i) {
+					ray r = base_get_ray(i, j);
 					color pixel_color = ssao_ray_color(r, world);
 					write_color(std::cout, pixel_color);
 				}
@@ -182,6 +209,7 @@ namespace render_core {
 			int samples_limit;
 			time_t start_time, end_time;
 
+			std::cerr << "Start main rendering" << '\n';
 			initialize();
 			adaptiv_render::adaptiv_sampling ads_(TIME_LIMIT_PER_PIXEL, &elapsed_time, &hits_count, &samples_limit);
 			std::cout << "P3\n" << IMAGE_WIDTH << ' ' << IMAGE_HEIGHT << "\n255\n";

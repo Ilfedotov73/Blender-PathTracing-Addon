@@ -15,3 +15,4 @@ group "Core"
 group ""
 
 include "App/Build-App.lua"
+include "Benchmark/Build-Benchmark.lua"

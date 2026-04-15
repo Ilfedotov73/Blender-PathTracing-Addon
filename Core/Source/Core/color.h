@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <cmath>
 
 #include "interval.h"
 
@@ -11,6 +12,13 @@ namespace render_core {
 	{
 		if (linear_component > 0) { return std::sqrt(linear_component); }
 		return 0.0f;
+	}
+
+	inline float pixel_ao_intensity(vec3 p1, vec3 p2, float max_shading_dist)
+	{
+		float dist = distance(p1, p2);
+		float intensity = std::min(dist / max_shading_dist, 1.0f);
+		return intensity;
 	}
 
 	inline void write_color(std::ostream& out, const color& pix_color)

@@ -24,6 +24,9 @@ namespace render_core {
 				vup[3];
 
 		bool	adapting_rendering;
+
+		bool	ssao_rendering = false;
+		bool	diffuse_rendering = false;
 	};
 	class renderer {
 	public:

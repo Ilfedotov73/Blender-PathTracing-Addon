@@ -2,11 +2,19 @@
 
 #include "interval.h"
 #include "vec3.h"
+#include "color.h"
 #include "ray.h"
 #include "aabb.h"
 
 namespace render_core {
 	class material;
+
+	class hit_point {
+	public:
+		vec3 p;
+		vec3 normal;
+		float intens;
+	};
 
 	class hit_record {
 	public:

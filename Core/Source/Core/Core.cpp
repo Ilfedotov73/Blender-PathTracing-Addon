@@ -34,6 +34,14 @@ namespace render_core {
 	void renderer::render_run(scene_data data)
 	{
 		initialize(data);
+		if (data.diffuse_rendering) {
+			CAM.diffuse_render(WORLD);
+			return;
+		}
+		else if (data.ssao_rendering) { 
+			CAM.ssao_render(WORLD);
+			return;
+		}
 		CAM.render(WORLD);
 	}
 }

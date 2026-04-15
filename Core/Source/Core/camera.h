@@ -29,6 +29,11 @@ namespace render_core {
 			   FOCUS_DISK_V;
 
 		mutable int hits_count = 0;
+		mutable int sqrt_spp;
+		mutable float recip_sqrt_spp;
+
+		float MAX_SHADING_DIST = 1.0f;
+		int	  SHADING_SAMPLES_LIMIT = 5;
 
 		void initialize()
 		{
@@ -63,7 +68,19 @@ namespace render_core {
 			//PIXEL_SAMPLES_SCALE = 1.0f / SAMPLES_PER_PIXEL;
 		}
 
-		// При поверхностном пересечении, надо увеличивать hits_count;
+		color diff_ray_color(const ray& r, const hittable& world) const
+		{
+			hit_record rec;
+			if (!world.hit(r, interval(0.001f, INF), rec)) { return background; }
+			
+			color color_from_emission = rec.mat->emitted(rec.u, rec.v, rec.p);
+			
+			ray   scattered;
+			color attenuation;
+			if (!rec.mat->scatter(r, rec, attenuation, scattered)) { return color_from_emission; }
+			return attenuation + color_from_emission;
+		}
+
 		color ray_color(const ray& r, int max_depth, const hittable& world) const
 		{
 			if (max_depth <= 0) { return color(0.0f, 0.0f, 0.0f); }
@@ -80,9 +97,37 @@ namespace render_core {
 			return color_from_emission + color_from_scatter;
 		}
 
-		ray get_ray(int i, int j) const
+		color ssao_ray_color(const ray& r, const hittable& world) const
 		{
-			vec3 offset = sample_square(); 
+			hit_record rec;
+			if (!world.hit(r, interval(0.001f, INF), rec)) { return color(1.0f, 1.0f, 1.0f); }
+
+			color pixel_color = color(1.0f, 1.0f, 1.0f);
+			hit_record shading_rec;
+			for (int sample = 0; sample < SHADING_SAMPLES_LIMIT; ++sample) {
+				vec3 scatter_dir = rec.normal + random_unit_vector();
+				if (scatter_dir.near_zero()) { scatter_dir = rec.normal; }
+				ray scattered = ray(rec.p, scatter_dir);
+				if (world.hit(scattered, interval(0.001f, INF), shading_rec)) {
+					float intensity = pixel_ao_intensity(rec.p, shading_rec.p, MAX_SHADING_DIST);
+					pixel_color = pixel_color[0] > intensity ? color(intensity, intensity, intensity) : pixel_color;
+				}
+			}
+			return pixel_color;
+		}
+
+		ray base_get_ray(int i, int j) const
+		{
+			point3 pixel_center = PIXEL_LOC_00 + (i * PIXEL_DELTA_U) + (j * PIXEL_DELTA_V);
+			point3 ray_origin = CAMERA_CENTER;
+			point3 ray_direction = pixel_center - ray_origin;
+
+			return ray(ray_origin, ray_direction);
+		}
+
+		ray get_ray(int i, int j, int s_i, int s_j) const
+		{
+			vec3 offset = sample_square_stratified(s_i, s_j);
 
 			point3 pixel_sample = PIXEL_LOC_00 + ((i + offset.x()) * PIXEL_DELTA_U) + ((j + offset.y()) * PIXEL_DELTA_V);
 			point3 ray_origin = (FOCUS_ANGLE <= 0) ? CAMERA_CENTER : focus_disk_sample();
@@ -93,6 +138,14 @@ namespace render_core {
 		}
 
 		vec3 sample_square() const { return vec3(random_float() - 0.5f, random_float() - 0.5f, 0.0f); }
+
+		vec3 sample_square_stratified(int s_i, int s_j) const
+		{
+			float px = ((s_i + random_float()) * recip_sqrt_spp) - 0.5f;
+			float py = ((s_j + random_float()) * recip_sqrt_spp) - 0.5f;
+
+			return vec3(px, py, 0);
+		}
 
 		point3 focus_disk_sample() const
 		{
@@ -105,6 +158,7 @@ namespace render_core {
 		int    IMAGE_WIDTH = 100;     			
 		float  TIME_LIMIT_PER_PIXEL = 120;
 		int	   SAMPLES_PER_PIXEL = 10;      				
+		int	   SHADING_SAMPLES = 20;
 		int	   MAX_DEPTH = 10;						
 		float  VFOV = 90.0f;					
 		point3 LOOKFROM = point3(0.0f, 0.0f, 0.0f);	
@@ -114,8 +168,40 @@ namespace render_core {
 		bool   ADAPTING_RENDERING = true;
 
 		float FOCUS_ANGLE = 0.0f;					
-		float  FOCUS_DIST = 10.0f;			    	
+		float FOCUS_DIST = 10.0f;			    	
 		color background;
+
+		void diffuse_render(const hittable& world)
+		{
+			std::cerr << "Start diffuse rendering" << '\n';
+			initialize();
+			std::cout << "P3\n" << IMAGE_WIDTH << ' ' << IMAGE_HEIGHT << "\n255\n";
+			for (int j = 0; j < IMAGE_HEIGHT; ++j) {
+				std::clog << "\rScanlines remaining: " << (IMAGE_HEIGHT - j) << ' ' << std::flush;
+				for (int i = 0; i < IMAGE_WIDTH; ++i) {
+					ray r = base_get_ray(i, j);
+					color pixel_color = diff_ray_color(r, world);
+					write_color(std::cout, pixel_color);
+				}
+			}
+			std::clog << "\rDone.                 \n";
+		}
+
+		void ssao_render(const hittable& world)
+		{
+			std::cerr << "Start SSAO rendering" << '\n';
+			initialize();
+			std::cout << "P3\n" << IMAGE_WIDTH << ' ' << IMAGE_HEIGHT << "\n255\n";
+			for (int j = 0; j < IMAGE_HEIGHT; ++j) {
+				std::clog << "\rScanlines remaining: " << (IMAGE_HEIGHT - j) << ' ' << std::flush;
+				for (int i = 0; i < IMAGE_WIDTH; ++i) {
+					ray r = base_get_ray(i, j);
+					color pixel_color = ssao_ray_color(r, world);
+					write_color(std::cout, pixel_color);
+				}
+			}
+			std::clog << "\rDone.                 \n";
+		}
 
 		void render(const hittable& world)
 		{
@@ -123,6 +209,7 @@ namespace render_core {
 			int samples_limit;
 			time_t start_time, end_time;
 
+			std::cerr << "Start main rendering" << '\n';
 			initialize();
 			adaptiv_render::adaptiv_sampling ads_(TIME_LIMIT_PER_PIXEL, &elapsed_time, &hits_count, &samples_limit);
 			std::cout << "P3\n" << IMAGE_WIDTH << ' ' << IMAGE_HEIGHT << "\n255\n";
@@ -131,22 +218,31 @@ namespace render_core {
 				for (int i = 0; i < IMAGE_WIDTH; ++i) {
 					color pixel_color(0.0f, 0.0f, 0.0f);
 					samples_limit = SAMPLES_PER_PIXEL;
-					for (int sample = 0; sample < samples_limit; ++sample) {
-						ray r = get_ray(i, j);
 
-						start_time = time(NULL);
-						pixel_color += ray_color(r, MAX_DEPTH, world); 
-						end_time = time(NULL);
+					sqrt_spp = int(std::sqrt(samples_limit));
+					recip_sqrt_spp = 1.0f / sqrt_spp;
 
-						if (ADAPTING_RENDERING) {
-							elapsed_time = difftime(end_time, start_time);
-							ads_.samples_delta_cal();	
-							if (samples_limit < 0) { samples_limit = 0; }
-							else if (samples_limit > SAMPLES_PER_PIXEL) { samples_limit = SAMPLES_PER_PIXEL; }
+					for (int s_j = 0; s_j < sqrt_spp; ++s_j) {
+						for (int s_i = 0; s_i < sqrt_spp; ++s_i) {
+							ray r = get_ray(i, j, s_i, s_j);
+
+							start_time = time(NULL);
+							pixel_color += ray_color(r, MAX_DEPTH, world);
+							end_time = time(NULL);
+
+							if (ADAPTING_RENDERING) {
+								elapsed_time = difftime(end_time, start_time);
+								ads_.samples_delta_cal();
+								if (samples_limit < 0) { samples_limit = 0; }
+								else if (samples_limit > SAMPLES_PER_PIXEL) { samples_limit = SAMPLES_PER_PIXEL; }
+								
+								sqrt_spp = int(std::sqrt(samples_limit));
+								recip_sqrt_spp = 1.0f / sqrt_spp;
+							}
 						}
 					}
 					hits_count = 0;
-					PIXEL_SAMPLES_SCALE = 1.0f / samples_limit;
+					PIXEL_SAMPLES_SCALE = 1.0f / (sqrt_spp * sqrt_spp);
 					write_color(std::cout, PIXEL_SAMPLES_SCALE * pixel_color); 
 				}
 			}

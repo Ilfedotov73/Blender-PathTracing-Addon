@@ -27,7 +27,7 @@ project "Core"
    filter "configurations:Release"
        defines { "RELEASE" }
        runtime "Release"
-       optimize "On"
+       optimize "Full"
        symbols "On"
 
    filter "configurations:Dist"

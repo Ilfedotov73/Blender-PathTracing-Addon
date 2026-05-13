@@ -43,7 +43,7 @@ namespace render_core {
                     surface = std::make_shared<diffuse_light>(color(15.0f, 15.0f, 15.0f));
                 }
                 else if (mat.name == "Metal") {
-                    surface = std::make_shared<metal>(color(0.8f, 0.0f, 0.0f), 0.6f);
+                    surface = std::make_shared<metal>(color(0.7f, 0.6f, 0.6f), 0.1f);
                 }
                 else if (mat.name == "Dielectric") {
                     surface = std::make_shared<dielectric>(1.0f / 1.2f);

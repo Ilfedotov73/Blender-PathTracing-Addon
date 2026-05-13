@@ -19,15 +19,15 @@ namespace adaptiv_render {
 			case fuzzy_terms::Empty_area: {
 				switch (time_term_aggregated) {
 					case fuzzy_terms::Fast_render: {
-						delta -= *samples_per_pixel * 0.03f;
+						delta -= *samples_per_pixel * 0.15f;
 						break;
 					}
 					case fuzzy_terms::Moderate_render: {
-						delta -= *samples_per_pixel * 0.05f;
+						delta -= *samples_per_pixel * 0.25f;
 						break;
 					}
 					case fuzzy_terms::Slow_render: {
-						delta -= *samples_per_pixel * 0.07f;
+						delta -= *samples_per_pixel * 0.35f;
 						break;
 					}
 					break;
@@ -37,14 +37,15 @@ namespace adaptiv_render {
 			case fuzzy_terms::Half_filled_area: {
 				switch (time_term_aggregated) {
 					case fuzzy_terms::Fast_render: {
-						break; // -0%
+						delta -= *samples_per_pixel * 0.03f;
+						break; 
 					}
 					case fuzzy_terms::Moderate_render: {
-						delta -= *samples_per_pixel * 0.01f;
+						delta -= *samples_per_pixel * 0.06f;
 						break;
 					}
 					case fuzzy_terms::Slow_render: {
-						delta -= *samples_per_pixel * 0.02f;
+						delta -= *samples_per_pixel * 0.10f;
 						break;
 					}
 					break;
